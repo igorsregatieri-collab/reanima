@@ -137,6 +137,39 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:11px;displa
 .awg{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-top:4px}
 .awg span:last-child{color:var(--txt);font-weight:800}
 
+/* barra de status */
+#statusBar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.st{padding:9px 10px;border-radius:12px;background:var(--panel);border:1px solid var(--line);text-align:left;overflow:hidden}
+.st span{display:block;font-size:9.5px;letter-spacing:1.1px;color:var(--dim);font-weight:700;text-transform:uppercase}
+.st b{display:block;font-size:12.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ações compactas */
+.quad{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.quad.two{grid-template-columns:1fr 1fr}
+.q{padding:11px 6px;border-radius:13px;background:var(--panel);border:1px solid var(--line);
+   font-size:11px;font-weight:700;color:var(--dim);text-align:center}
+.q i{display:block;font-style:normal;font-size:17px;margin-bottom:3px;color:var(--txt)}
+.q.r i{color:var(--rosc)}.q.s i{color:var(--shock)}
+.quad.two .q{padding:13px;font-size:13px;color:var(--txt)}
+
+/* via aérea na folha */
+.awPanel{display:flex;gap:12px;align-items:center;padding:12px;border-radius:14px;background:var(--panel2);border:1px solid var(--line);margin-bottom:12px}
+
+/* tela final */
+#endBody .hero{padding:20px;border-radius:18px;background:linear-gradient(160deg,#22111a,#141a23);border:1px solid var(--line);text-align:center}
+#endBody .hero .k{font-size:10px;letter-spacing:2.4px;color:var(--shock);font-weight:800}
+#endBody .hero h2{margin:6px 0 2px;font-size:26px;letter-spacing:-.5px}
+#endBody .hero p{margin:0;color:var(--dim);font-size:13px;line-height:1.5}
+#endBody .sum{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+#endBody .sum div{padding:12px;border-radius:13px;background:var(--panel);border:1px solid var(--line)}
+#endBody .sum span{display:block;font-size:9.5px;letter-spacing:1.2px;color:var(--dim);font-weight:700;text-transform:uppercase}
+#endBody .sum b{font-size:17px}
+#endBody .miss{padding:12px;border-radius:13px;background:#241b0e;border:1px solid var(--drug);color:var(--warn);font-size:12.5px;line-height:1.5;margin-bottom:10px}
+.bigbtn{width:100%;padding:16px;border-radius:14px;font-size:15px;font-weight:800;margin-bottom:8px;
+  background:var(--panel);border:1px solid var(--line)}
+.bigbtn.wa{background:#25d366;color:#05291a;border-color:transparent}
+.bigbtn.gh{background:transparent;color:var(--dim)}
+
 /* fluxograma */
 #flowBody .node{padding:15px;border-radius:16px;background:var(--panel);border:1px solid var(--line)}
 #flowBody .node.warn{border-color:var(--shock)}
@@ -252,27 +285,10 @@ textarea{height:76px;resize:none;font-size:14px}
     <button id="resumeBtn">RETOMAR COMPRESSÕES</button>
   </div>
 
-  <div class="strip" id="teamStrip">
-    <div class="who">Compressor: <b id="whoNow">não definido</b></div>
-    <button id="teamBtn">Equipe</button>
-  </div>
-
-  <div id="awBox">
-    <svg id="awSvg" viewBox="0 0 132 92" aria-hidden="true">
-      <path class="skull" d="M46 8c-19 0-33 14-33 31 0 9 3 15 3 21 0 5-6 6-6 11 0 4 5 6 10 6h13v9c0 3 2 5 5 5h16c3 0 5-2 5-5V64c0-6 5-9 10-14 5-5 8-11 8-19C77 17 65 8 46 8z"/>
-      <path class="trach" d="M62 60 C62 72 64 80 64 92"/>
-      <path class="way" id="awWay" d="M16 46 C30 44 44 48 54 55 C60 59 62 66 62 74"/>
-      <path class="tube" id="awTube" d="M16 46 C30 44 44 48 54 55 C60 59 62 66 62 74"/>
-      <circle class="cuff" id="awCuff" cx="62" cy="72" r="5"/>
-      <path class="lung" d="M84 58c8 0 14 8 14 18s-6 14-14 14-10-6-10-16 2-16 10-16z"/>
-    </svg>
-    <div class="awi">
-      <div class="lbl">Via aérea</div>
-      <div class="awt" id="awT">Bolsa-válvula-máscara</div>
-      <div class="aws" id="awS">Ventilar 2:30 · após via aérea avançada, 10/min contínuo</div>
-      <div class="gauge"><i id="etBar"></i><b id="etMark"></b></div>
-      <div class="awg"><span>EtCO₂</span><span id="etV">—</span></div>
-    </div>
+  <div id="statusBar">
+    <button class="st" data-st="team"><span>Compressor</span><b id="whoNow">—</b></button>
+    <button class="st" data-st="aw"><span>Via aérea</span><b id="awChip">BVM</b></button>
+    <button class="st" data-st="rh"><span>Ritmo</span><b id="rhLbl">—</b></button>
   </div>
 
   <div class="big" id="epiBox">
@@ -295,29 +311,16 @@ textarea{height:76px;resize:none;font-size:14px}
     <button class="act shock" id="shBtn"><span class="hold"></span>CHOQUE</button>
   </div>
 
-  <div class="grid">
-    <button class="tile" id="medBtn">Medicações<b>amiodarona, bicarbonato…</b></button>
-    <button class="tile c" id="rhBtn">Ritmo<b id="rhLbl">não registrado</b></button>
-    <button class="tile c" id="evBtn">Via aérea e acessos<b>IOT, acesso, USG</b></button>
-    <button class="tile w" id="hBtn">5H e 5T<b>causas reversíveis</b></button>
+  <div class="quad">
+    <button class="q" id="medBtn"><i>℞</i>Medicações</button>
+    <button class="q" id="rhBtn"><i>∿</i>Ritmo</button>
+    <button class="q" id="evBtn"><i>⌇</i>Via aérea</button>
+    <button class="q" id="hBtn"><i>⚠</i>5H e 5T</button>
   </div>
 
-  <div class="grid">
-    <button class="tile r" id="roscBtn">RCE<b>retorno de circulação</b></button>
-    <button class="tile s" id="endBtn">Óbito<b>encerrar reanimação</b></button>
-  </div>
-
-  <div id="tlWrap">
-    <h3>Linha do tempo</h3>
-    <div id="tl"></div>
-    <div id="tlAx"><span>00:00</span><span id="tlEnd">—</span></div>
-    <div class="leg">
-      <span><s style="background:var(--pulse)"></s>ciclo</span>
-      <span><s style="background:var(--shock)"></s>choque</span>
-      <span><s style="background:var(--drug)"></s>droga</span>
-      <span><s style="background:var(--cool)"></s>ritmo</span>
-      <span><s style="background:var(--rosc)"></s>RCE</span>
-    </div>
+  <div class="quad two">
+    <button class="q r" id="roscBtn"><i>♥</i>RCE</button>
+    <button class="q s" id="endBtn"><i>✝</i>Óbito</button>
   </div>
 
   <div id="logWrap">
@@ -327,9 +330,13 @@ textarea{height:76px;resize:none;font-size:14px}
       <button class="mini" id="debBtn">Debriefing</button>
       <button class="mini" id="expBtn">Exportar</button>
     </div>
+    <div id="tlWrap"><div id="tl"></div><div id="tlAx"><span>00:00</span><span id="tlEnd">—</span></div></div>
     <div id="log"><div class="empty">Nenhum evento registrado ainda.</div></div>
   </div>
 </section>
+
+<!-- ===== ENCERRADO ===== -->
+<section class="screen" id="sc-end"><div id="endBody"></div></section>
 
 <!-- ===== FLUXO ===== -->
 <section class="screen" id="sc-flow">
@@ -614,6 +621,7 @@ setInterval(()=>{
     : S.sh ? 'Último choque há '+mmss(t-S.sh)+' · '+(S.peso?'4 J/kg':'200 J bifásico')
     : 'Segure o botão para confirmar · '+(S.peso?'2 J/kg':'200 J bifásico');
 
+  ['#cprBtn','#epiBtn','#shBtn'].forEach(s=>{const b=$(s);b.style.opacity=S.ended?.35:1;b.style.pointerEvents=S.ended?'none':'auto'});
   const [v,w]=nextAction();
   if($('#nextV').textContent!==v){$('#nextV').textContent=v}
   $('#nextW').textContent=w;
@@ -701,7 +709,7 @@ $('#medBtn').onclick=()=>sheet('Medicações',MEDS.map((m,i)=>
 $('#rhBtn').onclick=()=>sheet('Ritmo checado',RHYTHMS.map((r,i)=>
   `<button class="opt ${S.rhythm===r[0]?'sel':''}" data-rh="${i}">${r[0]}<small>${r[1]}</small></button>`).join(''));
 $('#evBtn').onclick=()=>sheet('Via aérea, acessos e eventos',
-  EVENTS.map((e,i)=>`<button class="opt" data-ev="${i}">${e.n}${e.s?`<small>${e.s}</small>`:''}</button>`).join(''));
+  awPanel()+EVENTS.map((e,i)=>`<button class="opt" data-ev="${i}">${e.n}${e.s?`<small>${e.s}</small>`:''}</button>`).join(''));
 
 /* detalhamento pós-seleção */
 let FOL=null;
@@ -773,25 +781,33 @@ function savePt(){
 const AWTXT={bmv:['Bolsa-válvula-máscara','Ventilar 30:2 · cânula de Guedel, dois socorristas, selo com C-E'],
  mla:['Máscara laríngea','Via supraglótica — ventilar 10/min sem pausar as compressões'],
  iot:['Tubo orotraqueal','Ventilar 10/min contínuo · confirmar com capnografia e reavaliar fixação']};
-function paintAirway(){
-  const b=$('#awBox'),k=S.airway||'bmv';
-  b.className='';if(k!=='bmv')b.classList.add(k);
-  $('#awT').textContent=AWTXT[k][0]+(k==='iot'&&S.tube?' '+S.tube:'');
-  $('#awS').textContent=AWTXT[k][1];
-  const v=S.etco2;
-  $('#etV').textContent=v==null?'—':v+' mmHg';
-  const m=$('#etMark');
-  if(v==null){m.style.display='none'}
-  else{m.style.display='block';m.style.left=Math.min(100,Math.max(0,v/50*100))+'%'}
+const AWSVG=`<svg id="awSvg" viewBox="0 0 132 92">
+  <path class="skull" d="M46 8c-19 0-33 14-33 31 0 9 3 15 3 21 0 5-6 6-6 11 0 4 5 6 10 6h13v9c0 3 2 5 5 5h16c3 0 5-2 5-5V64c0-6 5-9 10-14 5-5 8-11 8-19C77 17 65 8 46 8z"/>
+  <path class="trach" d="M62 60 C62 72 64 80 64 92"/>
+  <path class="way" d="M16 46 C30 44 44 48 54 55 C60 59 62 66 62 74"/>
+  <path class="tube" d="M16 46 C30 44 44 48 54 55 C60 59 62 66 62 74"/>
+  <circle class="cuff" cx="62" cy="72" r="5"/>
+  <path class="lung" d="M84 58c8 0 14 8 14 18s-6 14-14 14-10-6-10-16 2-16 10-16z"/></svg>`;
+const AWSHORT={bmv:'BVM',mla:'MLA',iot:'TOT'};
+function awPanel(){
+  const k=S.airway||'bmv',v=S.etco2;
+  return `<div class="awPanel ${k}" id="awBox">${AWSVG}
+    <div class="awi"><div class="lbl">Via aérea atual</div>
+      <div class="awt">${AWTXT[k][0]}${k==='iot'&&S.tube?' '+S.tube:''}</div>
+      <div class="aws">${AWTXT[k][1]}</div>
+      <div class="gauge"><b style="display:${v==null?'none':'block'};left:${v==null?0:Math.min(100,Math.max(0,v/50*100))}%"></b></div>
+      <div class="awg"><span>EtCO₂</span><span>${v==null?'—':v+' mmHg'}</span></div></div></div>`;
 }
-$('#awBox').onclick=()=>$('#evBtn').onclick();
+function paintAirway(){
+  $('#awChip').textContent=AWSHORT[S.airway||'bmv']+(S.etco2!=null?' · '+S.etco2:'');
+}
 
 /* reiniciar */
 $('#resetBtn').onclick=()=>sheet('Reiniciar',
  `<p class="note">Reiniciar zera cronômetros, contadores e registro deste atendimento. Novo atendimento guarda o atual na aba Casos e começa outro em branco.</p>
   <button class="opt center" data-new="1" style="background:var(--pulse);color:#06231a;border-color:transparent;font-weight:800">Novo atendimento</button>
   <button class="opt danger center" data-wipe="1">Reiniciar este atendimento do zero</button>`);
-function paintTeam(){$('#whoNow').textContent=teamName()||'não definido'}
+function paintTeam(){$('#whoNow').textContent=teamName()||'definir'}
 function teamSheet(){
   sheet('Equipe e rodízio',
    `<div class="chips">${S.team.map((n,i)=>`<button class="chip ${i===S.who%Math.max(1,S.team.length)?'on':''}" data-tm="${i}">${esc(n)} ×</button>`).join('')||'<span class="note">Ninguém cadastrado ainda.</span>'}</div>
@@ -799,7 +815,12 @@ function teamSheet(){
     <button class="opt center" data-addtm="1">Adicionar à escala</button>
     <p class="note">A cada novo ciclo de 2 min o app avança automaticamente para o próximo da lista e anuncia o nome. Toque num nome para removê-lo.</p>`);
 }
-$('#teamBtn').onclick=teamSheet;
+document.getElementById('statusBar').addEventListener('click',e=>{
+  const b=e.target.closest('.st');if(!b)return;
+  if(b.dataset.st==='team')teamSheet();
+  if(b.dataset.st==='aw')$('#evBtn').onclick();
+  if(b.dataset.st==='rh')$('#rhBtn').onclick();
+});
 
 $('#roscBtn').onclick=()=>{
   add('RCE — retorno da circulação espontânea','rosc');say('Retorno da circulação espontânea. Iniciar cuidados pós-parada.');
@@ -902,8 +923,9 @@ $('#sheetBody').addEventListener('click',e=>{
     S.log.push({t,msg:'Óbito constatado às '+new Date(t).toLocaleTimeString('pt-BR').slice(0,5)
       +(OBI.ex.length?' — '+OBI.ex.join('; '):''),kind:'shock'});
     save();renderLog();renderTL();
-    $('#startBtn').textContent='ENCERRADO';
-    say('Óbito constatado. Reanimação encerrada.');closeSheet();return}
+    $('#startBtn').textContent='ENCERRADO';$('#startBtn').classList.remove('go');
+    say('Óbito constatado. Reanimação encerrada.');closeSheet();
+    renderEnd();tab('end');return}
   if(d.pt){savePt();closeSheet();return}
   if(d.doc){cfg.medico=$('#docIn').value.trim();cfg.crm=$('#crmIn').value.trim();cfg.unidade=$('#uniIn').value.trim();save();closeSheet();return}
   if(d.note){const v=$('#freeNote').value.trim();if(v)add(v);closeSheet();return}
@@ -920,12 +942,9 @@ $('#sheetBody').addEventListener('click',e=>{
     if(!cases[curId]){const c=blank();cases[c.id]=c;curId=c.id;S=c;save();bootCase()}
     renderCases();closeSheet();return}
   if(d.copy){navigator.clipboard.writeText(report()).then(()=>b.textContent='Copiado ✓')}
-  if(d.print){const w=window.open('','_blank');
-    if(!w){alert('Libere pop-ups para imprimir.');return}
-    w.document.write('<pre style="font:12px/1.45 ui-monospace,monospace;white-space:pre-wrap;padding:18px">'+esc(report())+'</pre>');
-    w.document.close();setTimeout(()=>w.print(),350);return}
-  if(d.dl){const bl=new Blob([report()],{type:'text/plain'}),a=document.createElement('a');
-    a.href=URL.createObjectURL(bl);a.download='pcr_'+new Date(S.t0||now()).toISOString().slice(0,16).replace(/[:T-]/g,'')+'.txt';a.click()}
+  if(d.wa){sendWA();return}
+  if(d.print){printRep();return}
+  if(d.dl){dlTxt()}
 });
 
 /* ---------------- relatório ---------------- */
@@ -1015,6 +1034,7 @@ $('#expBtn').onclick=()=>{
   if(!S.t0){sheet('Exportar','<p class="note">Nenhum atendimento registrado ainda.</p>');return}
   sheet('Registro do atendimento',`<div id="dump">${esc(report())}</div><div style="height:9px"></div>
    <button class="opt center" data-copy="1">Copiar texto</button>
+   <button class="opt center" data-wa="1" style="background:#25d366;color:#05291a;border-color:transparent;font-weight:800">Enviar por WhatsApp</button>
    <button class="opt center" data-dl="1">Baixar .txt</button>
    <button class="opt center" data-print="1">Imprimir / salvar PDF</button>`);
 };
@@ -1176,6 +1196,109 @@ $('#infList').addEventListener('click',e=>{
 $('#wBtn').onclick=openMenu;
 function paintWeight(){$('#wLbl').textContent=S.peso?S.peso+' kg':'não definido'}
 
+/* ---------------- tela de encerramento ---------------- */
+function renderEnd(){
+  const t0=S.t0||now(),hh=t=>new Date(t).toLocaleTimeString('pt-BR').slice(0,5);
+  const rce=S.log.find(e=>e.kind==='rosc');
+  const fim=S.death?S.death.t:(rce?rce.t:now());
+  const f=ccf();
+  const falta=[];
+  if(!S.name)falta.push('identificação do paciente');
+  if(!S.pt.origem)falta.push('contexto da parada');
+  if(S.death&&!S.death.ex.length)falta.push('critérios de confirmação do óbito');
+  if(!cfg.medico)falta.push('assinatura do médico');
+  if(!S.debrief||!Object.values(S.debrief).some(Boolean))falta.push('debriefing');
+  $('#endBody').innerHTML=
+   `<div class="hero"><div class="k">${S.death?'ATENDIMENTO ENCERRADO':'REANIMAÇÃO FINALIZADA'}</div>
+      <h2>${S.death?'Óbito às '+hh(S.death.t):rce?'RCE às '+hh(rce.t):'Encerrado'}</h2>
+      <p>${esc(S.name||'Paciente não identificado')} · reanimação de ${hms(fim-t0)}<br>início ${hh(t0)} · término ${hh(fim)}</p></div>
+    <div class="sum">
+      <div><span>Choques</span><b>${S.shN}</b></div>
+      <div><span>Adrenalina</span><b>${S.epiN} dose(s)</b></div>
+      <div><span>Fração de compressão</span><b>${f!==null?f.toFixed(0)+'%':'—'}</b></div>
+      <div><span>Ritmo inicial</span><b style="font-size:13px">${esc(S.rhythm0||'não registrado')}</b></div>
+    </div>
+    ${falta.length?`<div class="miss">Falta preencher: ${falta.join(', ')}.</div>`:''}
+    <button class="bigbtn wa" data-wa="1">Enviar por WhatsApp</button>
+    <button class="bigbtn" data-copy="2">Copiar relatório completo</button>
+    <button class="bigbtn" data-view="1">Ver relatório</button>
+    <button class="bigbtn" data-dl="2">Baixar .txt</button>
+    <button class="bigbtn" data-print="2">Imprimir / salvar PDF</button>
+    <div style="height:6px"></div>
+    <button class="bigbtn gh" data-endedit="ob">Corrigir dados do óbito</button>
+    <button class="bigbtn gh" data-endedit="pt">Completar dados do paciente</button>
+    <button class="bigbtn gh" data-endedit="deb">Debriefing da equipe</button>
+    <button class="bigbtn gh" data-endedit="log">Ver e editar o registro</button>
+    <button class="bigbtn gh" data-new="1">Novo atendimento</button>`;
+}
+$('#endBody').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+  if(d.wa)return sendWA();
+  if(d.copy)return navigator.clipboard.writeText(report()).then(()=>{b.textContent='Copiado ✓';setTimeout(renderEnd,1600)});
+  if(d.view)return $('#expBtn').onclick();
+  if(d.dl)return dlTxt();
+  if(d.print)return printRep();
+  if(d.endedit==='ob'){OBI={ex:S.death?S.death.ex.slice():[],mode:S.death?S.death.mode:'auto',
+     by:S.death?S.death.by:'',nota:S.death?S.death.nota:'',
+     hora:S.death?new Date(S.death.t).toTimeString().slice(0,5):''};return obSheet()}
+  if(d.endedit==='pt')return ptSheet();
+  if(d.endedit==='deb')return $('#debBtn').onclick();
+  if(d.endedit==='log'){tab('code');return}
+  if(d.new){const c=blank();cases[c.id]=c;curId=c.id;S=c;save();bootCase();tab('code')}
+});
+
+/* WhatsApp */
+function waText(){
+  const t0=S.t0||now(),hh=t=>new Date(t).toLocaleTimeString('pt-BR').slice(0,5);
+  const rce=S.log.find(e=>e.kind==='rosc');
+  const fim=S.death?S.death.t:(rce?rce.t:now());
+  const L=[];
+  L.push('*PARADA CARDIORRESPIRATÓRIA — RELATÓRIO*');
+  if(cfg.unidade)L.push('_'+cfg.unidade+'_');
+  L.push('');
+  L.push('*Paciente:* '+(S.name||'não identificado')
+    +(S.pt.idade?', '+S.pt.idade+' anos':'')+(S.pt.sexo?', '+S.pt.sexo:'')
+    +(S.pt.leito?' — '+S.pt.leito:''));
+  const ctx=[S.pt.origem,S.pt.presenc,S.pt.rcpPre?'RCP prévia: '+S.pt.rcpPre:'',
+    S.pt.downtime?S.pt.downtime+' min sem RCP':''].filter(Boolean);
+  if(ctx.length)L.push('*Contexto:* '+ctx.join(' · '));
+  if(S.pt.hd)L.push('*HD:* '+S.pt.hd);
+  L.push('');
+  L.push('*Início:* '+hh(t0)+'  *Término:* '+hh(fim)+'  *Duração:* '+hms(fim-t0));
+  L.push('*Ritmo inicial:* '+(S.rhythm0||'não registrado'));
+  const f=ccf();if(f!==null)L.push('*Fração de compressão:* '+f.toFixed(0)+'%');
+  const sh=S.log.filter(e=>e.kind==='shock'&&/Choque/i.test(e.msg));
+  L.push('*Choques:* '+(sh.length?sh.length+' ('+sh.map(e=>hh(e.t)).join(', ')+')':'nenhum'));
+  const g={};S.log.filter(e=>e.kind==='drug').forEach(e=>{const k=e.msg.split(' — ')[0];(g[k]=g[k]||[]).push(e.t)});
+  const gk=Object.keys(g);
+  if(gk.length){L.push('*Medicações:*');gk.forEach(k=>L.push('• '+k+' — '+g[k].length+'x ('+g[k].map(hh).join(', ')+')'))}
+  L.push('*Via aérea:* '+(S.airway?AWTXT[S.airway][0]+(S.tube?' '+S.tube:''):'BVM')
+    +(S.etco2!=null?' · EtCO₂ '+S.etco2:''));
+  const ca=Object.entries(S.causes).filter(([k,v])=>v);
+  if(ca.length)L.push('*Causas:* '+ca.map(([k,v])=>k+(v==='off'?' (afastada)':'')).join(', '));
+  L.push('');
+  if(S.death){
+    L.push('*DESFECHO: óbito às '+hh(S.death.t)+'*');
+    if(S.death.ex.length)L.push('Confirmado por: '+S.death.ex.join('; '));
+    if(S.death.nota)L.push('Obs: '+S.death.nota);
+  }else if(rce)L.push('*DESFECHO: RCE às '+hh(rce.t)+'*');
+  L.push('');
+  L.push((S.death&&S.death.by)||cfg.medico||'Médico responsável');
+  if(cfg.crm&&!(S.death&&S.death.by))L.push('CRM '+cfg.crm);
+  return L.join('\n');
+}
+async function sendWA(){
+  const txt=waText();
+  if(navigator.share){try{await navigator.share({text:txt});return}catch(e){if(e.name==='AbortError')return}}
+  window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+}
+function dlTxt(){const bl=new Blob([report()],{type:'text/plain'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(bl);a.download='pcr_'+new Date(S.t0||now()).toISOString().slice(0,16).replace(/[:T-]/g,'')+'.txt';a.click()}
+function printRep(){const w=window.open('','_blank');
+  if(!w){alert('Libere pop-ups para imprimir.');return}
+  w.document.write('<pre style="font:12px/1.45 ui-monospace,monospace;white-space:pre-wrap;padding:18px">'+esc(report())+'</pre>');
+  w.document.close();setTimeout(()=>w.print(),350)}
+
 /* ---------------- casos ---------------- */
 function renderCases(){
   const list=Object.values(cases).sort((a,b)=>(b.t0||b.id.slice(1))-(a.t0||a.id.slice(1)));
@@ -1197,12 +1320,17 @@ function switchCase(id){if(!cases[id])return;curId=id;S=cases[id];save();bootCas
 
 /* ---------------- abas ---------------- */
 function tab(k){
+  if(k==='end')renderEnd();
   $$('.screen').forEach(s=>s.classList.toggle('on',s.id==='sc-'+k));
   $$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===k));
+  if(k==='end'){$$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab==='code'))}
   if(k==='cases')renderCases();if(k==='post'){renderInf();paintWeight()}
   document.querySelector('main').scrollTop=0;
 }
-$$('nav button').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
+$$('nav button').forEach(b=>b.onclick=()=>{
+  if(b.dataset.tab==='code'&&(S.ended||S.death)){tab('end');
+    $$('nav button').forEach(x=>x.classList.toggle('on',x===b));return}
+  tab(b.dataset.tab)});
 
 /* ---------------- boot ---------------- */
 function bootCase(){
@@ -1211,6 +1339,7 @@ function bootCase(){
   $('#rhLbl').textContent=S.rhythm||'não registrado';
   $('#pauseBox').classList.toggle('on',!!S.paused);
   paintTeam();paintWeight();paintAirway();renderLog();renderTL();renderInf();renderCases();
+  if(S.ended||S.death){renderEnd();tab('end')}
   if(S.t0&&!S.ended)wake();
 }
 $('#bpm').innerHTML=cfg.bpm+' <small>BPM</small>';
