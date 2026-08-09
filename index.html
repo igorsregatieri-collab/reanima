@@ -501,12 +501,13 @@ function start(silent){
   $('#startBtn').textContent='RODANDO';$('#startBtn').classList.remove('go');
   if(!silent)say('Reanimação iniciada. Compressões agora.');
 }
-$('#startBtn').onclick=()=>{S.t0?openMenu():start()};
+$('#startBtn').onclick=()=>{unlockAudio();S.t0?openMenu():start()};
 
 const teamName=()=>S.team.length?S.team[S.who%S.team.length]:'';
 function rotate(){ if(S.team.length)S.who=(S.who+1)%S.team.length; }
 
 $('#cprBtn').onclick=()=>{
+  unlockAudio();
   if(!S.t0){start();return}
   if(S.ended)return;
   if(S.paused)return resume();
@@ -517,7 +518,7 @@ $('#cprBtn').onclick=()=>{
   if(metroOn){clearInterval(metroTimer)}
   document.querySelector('main').scrollTop=0;
 };
-$('#resumeBtn').onclick=()=>resume();
+$('#resumeBtn').onclick=()=>{unlockAudio();resume()};
 function resume(){
   if(!S.paused)return;
   const dur=now()-S.paused;
@@ -706,44 +707,78 @@ setInterval(()=>{
 },250);
 
 /* ---------------- som ---------------- */
-let AC=null,audioOK=false;
+let AC=null;
 function ac(){
-  if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return null}}
-  if(AC.state==='suspended')AC.resume();
+  try{
+    if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();
+    if(AC.state!=='running')AC.resume();
+  }catch(e){AC=null}
   return AC;
 }
-function unlockAudio(){
-  const c=ac();if(!c)return;
+/* clique em WAV — usado quando o Web Audio não está disponível */
+function makeClick(){
+  const sr=22050,len=Math.floor(sr*0.07),d=[];
+  for(let i=0;i<len;i++){
+    const t=i/sr,env=Math.exp(-t*55);
+    let v=Math.sin(2*Math.PI*1150*t)*0.75+Math.sin(2*Math.PI*575*t)*0.25;
+    d.push(Math.max(-1,Math.min(1,v*env)));
+  }
+  const buf=new ArrayBuffer(44+len*2),dv=new DataView(buf);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)dv.setUint8(o+i,s.charCodeAt(i))};
+  ws(0,'RIFF');dv.setUint32(4,36+len*2,true);ws(8,'WAVEfmt ');
+  dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,1,true);
+  dv.setUint32(24,sr,true);dv.setUint32(28,sr*2,true);dv.setUint16(32,2,true);dv.setUint16(34,16,true);
+  ws(36,'data');dv.setUint32(40,len*2,true);
+  for(let i=0;i<len;i++)dv.setInt16(44+i*2,d[i]*32767,true);
+  let s='';const u=new Uint8Array(buf);
+  for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);
+  return 'data:audio/wav;base64,'+btoa(s);
+}
+let CLICK=null,pool=[],pi=0;
+function initPool(){
+  if(pool.length)return;
   try{
-    const b=c.createBuffer(1,1,22050),s=c.createBufferSource();
-    s.buffer=b;s.connect(c.destination);s.start(0);
-    audioOK=(c.state==='running');
+    CLICK=CLICK||makeClick();
+    for(let i=0;i<4;i++){const a=new Audio(CLICK);a.preload='auto';a.volume=1;pool.push(a)}
   }catch(e){}
+}
+function unlockAudio(){
+  ac();initPool();
+  try{pool.forEach(a=>{a.muted=true;const p=a.play();if(p&&p.then)p.then(()=>{a.pause();a.currentTime=0;a.muted=false}).catch(()=>{a.muted=false})})}catch(e){}
 }
 function beep(f,dur,vol){
-  const c=ac();if(!c)return;
-  try{
-    const t=c.currentTime,o=c.createOscillator(),o2=c.createOscillator(),g=c.createGain();
-    o.type='square';o.frequency.value=f||1200;
-    o2.type='sine';o2.frequency.value=(f||1200)/2;
-    g.gain.setValueAtTime(0.0001,t);
-    g.gain.exponentialRampToValueAtTime(vol||.6,t+.006);
-    g.gain.exponentialRampToValueAtTime(0.0001,t+(dur||.07));
-    o.connect(g);o2.connect(g);g.connect(c.destination);
-    o.start(t);o2.start(t);o.stop(t+(dur||.07));o2.stop(t+(dur||.07));
-  }catch(e){}
+  const c=ac();
+  if(c&&c.state==='running'){
+    try{
+      const t=c.currentTime,o=c.createOscillator(),o2=c.createOscillator(),g=c.createGain();
+      o.type='square';o.frequency.value=f||1150;
+      o2.type='sine';o2.frequency.value=(f||1150)/2;
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(vol||.7,t+.006);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+(dur||.07));
+      o.connect(g);o2.connect(g);g.connect(c.destination);
+      o.start(t);o2.start(t);o.stop(t+(dur||.07));o2.stop(t+(dur||.07));
+      return;
+    }catch(e){}
+  }
+  initPool();
+  try{const a=pool[pi++%pool.length];if(a){a.currentTime=0;a.play().catch(()=>{})}}catch(e){}
+}
+function audioInfo(){
+  return 'Web Audio: '+(AC?AC.state:'não criado')
+    +' · elementos de áudio: '+(pool.length?'prontos':'não iniciados');
 }
 let metroOn=false,metroTimer=null;
-function metroTick(){beep(1150,.07,.7);buzz(12);const d=$('#dot');d.classList.add('hit');setTimeout(()=>d.classList.remove('hit'),70)}
+function metroTick(){beep(1150,.07,.8);buzz(12);const d=$('#dot');d.classList.add('hit');setTimeout(()=>d.classList.remove('hit'),70)}
 function metroAuto(on){
-  if(!cfg.metro)return;
+  if(cfg.metro===false)return;
   metroOn=!!on;
   $('#metroBtn').classList.toggle('on',metroOn);
   $('#metroBtn').textContent=metroOn?'❚❚':'▶';
   metroSync();
 }
 function metroSync(){clearInterval(metroTimer);if(metroOn){metroTick();metroTimer=setInterval(metroTick,60000/cfg.bpm)}}
-$('#metroBtn').onclick=function(){metroOn=!metroOn;cfg.metro=metroOn;save();this.classList.toggle('on',metroOn);this.textContent=metroOn?'❚❚':'▶';metroSync()};
+$('#metroBtn').onclick=function(){unlockAudio();metroOn=!metroOn;cfg.metro=metroOn;save();this.classList.toggle('on',metroOn);this.textContent=metroOn?'❚❚':'▶';metroSync()};
 $$('.step').forEach(b=>b.onclick=()=>{cfg.bpm=Math.min(130,Math.max(90,cfg.bpm+ +b.dataset.bpm));
   $('#bpm').innerHTML=cfg.bpm+' <small>BPM</small>';save();if(metroOn)metroSync()});
 
@@ -1154,7 +1189,8 @@ $('#sheetBody').addEventListener('click',e=>{
   if(d.open2==='pt'){ptSheet();return}
   if(d.peso){const v=parseFloat($('#pesoIn').value);S.peso=v>0?v:null;save();paintWeight();
     add(S.peso?`Peso ${S.peso} kg — doses pediátricas ativadas`:'Doses adulto ativadas');renderInf();closeSheet();return}
-  if(d.somtest){unlockAudio();let i=0;const iv=setInterval(()=>{beep(1150,.07,.7);if(++i>3)clearInterval(iv)},545);return}
+  if(d.somtest){unlockAudio();let i=0;const iv=setInterval(()=>{beep(1150,.07,.8);if(++i>5)clearInterval(iv)},545);
+    setTimeout(()=>{const el=$('#somInfo');if(el)el.textContent=audioInfo()},900);return}
   if(d.tema){cfg.tema=d.tema;save();paintTema();openMenu();return}
   if(d.go==='cases'){tab('cases');closeSheet();return}
   if(d.go){tab(d.go);closeSheet();return}
@@ -1360,6 +1396,7 @@ function openMenu(){
    <p class="note">Fica guardado no aparelho e é usado em todos os próximos atendimentos.</p>
    <p class="note">Com peso definido, adrenalina e choque passam a dose pediátrica (0,01 mg/kg e 2–4 J/kg) e as infusões da aba Pós-PCR são calculadas.</p>
    <button class="opt center" data-somtest="1">Testar som do metrônomo</button>
+   <p class="note" id="somInfo">Toque para ouvir seis batidas.</p>
    <p class="note">Sem som no iPhone? A chave lateral de silencioso corta o áudio do navegador. Desligue o silencioso e aumente o volume com o app aberto.</p>
    <div class="folk">Aparência</div>
    <div class="fol">
