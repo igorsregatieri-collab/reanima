@@ -771,15 +771,20 @@ function ac(){
   }catch(e){AC=null}
   return AC;
 }
-/* clique em WAV — usado quando o Web Audio não está disponível */
-function makeClick(){
-  const sr=22050,len=Math.floor(sr*0.07),d=[];
+/* WAV gerado no app: 'total' = duração da faixa, clique no início */
+function makeWav(total){
+  const sr=22050,len=Math.floor(sr*total),d=[];
+  const clk=Math.floor(sr*0.06);
   for(let i=0;i<len;i++){
-    const t=i/sr,env=Math.exp(-t*55);
-    let v=Math.sin(2*Math.PI*1150*t)*0.75+Math.sin(2*Math.PI*575*t)*0.25;
-    d.push(Math.max(-1,Math.min(1,v*env)));
+    if(i<clk){
+      const t=i/sr,env=Math.exp(-t*60);
+      d.push(Math.max(-1,Math.min(1,(Math.sin(2*Math.PI*1150*t)*0.75+Math.sin(2*Math.PI*575*t)*0.3)*env)));
+    }else d.push(0);
   }
-  const buf=new ArrayBuffer(44+len*2),dv=new DataView(buf);
+  return wavURI(d,sr);
+}
+function wavURI(d,sr){
+  const len=d.length,buf=new ArrayBuffer(44+len*2),dv=new DataView(buf);
   const ws=(o,s)=>{for(let i=0;i<s.length;i++)dv.setUint8(o+i,s.charCodeAt(i))};
   ws(0,'RIFF');dv.setUint32(4,36+len*2,true);ws(8,'WAVEfmt ');
   dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,1,true);
@@ -789,6 +794,14 @@ function makeClick(){
   let s='';const u=new Uint8Array(buf);
   for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);
   return 'data:audio/wav;base64,'+btoa(s);
+}
+function makeClick(){
+  const sr=22050,len=Math.floor(sr*0.07),d=[];
+  for(let i=0;i<len;i++){
+    const t=i/sr,env=Math.exp(-t*55);
+    d.push(Math.max(-1,Math.min(1,(Math.sin(2*Math.PI*1150*t)*0.75+Math.sin(2*Math.PI*575*t)*0.25)*env)));
+  }
+  return wavURI(d,sr);
 }
 let CLICK=null,pool=[],pi=0;
 function initPool(){
@@ -802,6 +815,10 @@ let unlocked=false;
 function unlockAudio(){
   if(unlocked)return;
   const c=ac();initPool();
+  try{const el=loopAudio();if(!el.src)el.src=makeWav(60/cfg.bpm),loopBpm=cfg.bpm;
+    el.muted=true;const p=el.play();
+    if(p&&p.then)p.then(()=>{el.pause();el.currentTime=0;el.muted=false})
+      .catch(err=>{el.muted=false;lastAudioErr=err&&err.name?err.name:'play bloqueado'})}catch(e){}
   try{pool.forEach(a=>{a.muted=true;const p=a.play();
     if(p&&p.then)p.then(()=>{a.pause();a.currentTime=0;a.muted=false}).catch(()=>{a.muted=false})})}catch(e){}
   if(c&&c.state==='running'){unlocked=true;
@@ -826,20 +843,54 @@ function beep(f,dur,vol){
   initPool();
   try{const a=pool[pi++%pool.length];if(a){a.currentTime=0;a.play().catch(()=>{})}}catch(e){}
 }
-function audioInfo(){
-  return 'Web Audio: '+(AC?AC.state:'não criado')
-    +' · elementos de áudio: '+(pool.length?'prontos':'não iniciados');
+let metroOn=false,metroTimer=null,loopEl=null,loopBpm=0,lastAudioErr='';
+function loopAudio(){
+  if(!loopEl){
+    loopEl=new Audio();loopEl.loop=true;loopEl.preload='auto';loopEl.volume=1;
+    loopEl.setAttribute('playsinline','');
+  }
+  return loopEl;
 }
-let metroOn=false,metroTimer=null;
-function metroTick(){beep(1150,.07,.8);buzz(12);const d=$('#dot');d.classList.add('hit');setTimeout(()=>d.classList.remove('hit'),70)}
+function metroTick(){
+  const d=$('#dot');d.classList.add('hit');setTimeout(()=>d.classList.remove('hit'),70);
+  buzz(12);
+  if(!loopPlaying)beep(1150,.07,.8);   /* só bipa se o loop não estiver tocando */
+}
+let loopPlaying=false;
+function metroSync(){
+  clearInterval(metroTimer);
+  const per=60/cfg.bpm;
+  if(!metroOn){
+    loopPlaying=false;
+    try{if(loopEl){loopEl.pause();loopEl.currentTime=0}}catch(e){}
+    return;
+  }
+  /* faixa em loop: mais confiável no iPhone que um disparo por batida */
+  try{
+    const el=loopAudio();
+    if(loopBpm!==cfg.bpm){loopBpm=cfg.bpm;el.src=makeWav(per)}
+    const pr=el.play();
+    if(pr&&pr.then)pr.then(()=>{loopPlaying=true;lastAudioErr=''})
+      .catch(err=>{loopPlaying=false;lastAudioErr=err&&err.name?err.name+': '+err.message:'falha ao tocar'});
+  }catch(e){loopPlaying=false;lastAudioErr=String(e&&e.message||e)}
+  metroTick();
+  metroTimer=setInterval(metroTick,per*1000);
+}
 function metroAuto(on){
   if(cfg.metro===false)return;
   metroOn=!!on;
-  $('#metroBtn').classList.toggle('on',metroOn);
-  $('#metroBtn').textContent=metroOn?'❚❚':'▶';
+  const b=$('#metroBtn');
+  b.classList.toggle('on',metroOn);b.textContent=metroOn?'❚❚':'▶';
   metroSync();
 }
-function metroSync(){clearInterval(metroTimer);if(metroOn){metroTick();metroTimer=setInterval(metroTick,60000/cfg.bpm)}}
+function audioInfo(){
+  const el=loopEl;
+  return 'Web Audio: '+(AC?AC.state:'não criado')
+    +' · destravado: '+(unlocked?'sim':'não')
+    +' · loop: '+(loopPlaying?'tocando':'parado')
+    +(el?' · volume '+el.volume+' · mudo '+(el.muted?'sim':'não'):'')
+    +(lastAudioErr?' · ERRO '+lastAudioErr:'');
+}
 $('#metroBtn').onclick=function(){unlockAudio();metroOn=!metroOn;cfg.metro=metroOn;save();this.classList.toggle('on',metroOn);this.textContent=metroOn?'❚❚':'▶';metroSync()};
 $$('.step').forEach(b=>b.onclick=()=>{cfg.bpm=Math.min(130,Math.max(90,cfg.bpm+ +b.dataset.bpm));
   $('#bpm').innerHTML=cfg.bpm+' <small>BPM</small>';save();if(metroOn)metroSync()});
@@ -1273,8 +1324,13 @@ $('#sheetBody').addEventListener('click',e=>{
   if(d.open2==='pt'){ptSheet();return}
   if(d.peso){const v=parseFloat($('#pesoIn').value);S.peso=v>0?v:null;save();paintWeight();
     add(S.peso?`Peso ${S.peso} kg — doses pediátricas ativadas`:'Doses adulto ativadas');renderInf();closeSheet();return}
-  if(d.somtest){unlockAudio();let i=0;const iv=setInterval(()=>{beep(1150,.07,.8);if(++i>5)clearInterval(iv)},545);
-    setTimeout(()=>{const el=$('#somInfo');if(el)el.textContent=audioInfo()},900);return}
+  if(d.somtest){
+    unlockAudio();
+    const prev=metroOn;metroOn=true;cfg.metro=true;metroSync();
+    setTimeout(()=>{const el=$('#somInfo');if(el)el.textContent=audioInfo()},1200);
+    setTimeout(()=>{if(!prev){metroOn=false;metroSync();
+      $('#metroBtn').classList.remove('on');$('#metroBtn').textContent='▶'}},4200);
+    return}
   if(d.tema){cfg.tema=d.tema;save();paintTema();openMenu();return}
   if(d.go==='cases'){tab('cases');closeSheet();return}
   if(d.go){tab(d.go);closeSheet();return}
