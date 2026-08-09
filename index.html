@@ -144,6 +144,18 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:11px;displa
 .awg{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-top:4px}
 .awg span:last-child{color:var(--txt);font-weight:800}
 
+/* boas-vindas */
+#onb{position:fixed;inset:0;z-index:90;background:var(--bg);display:none;
+  align-items:center;justify-content:center;padding:24px}
+#onb.on{display:flex}
+#onbIn{width:100%;max-width:420px}
+.obrand{font-size:12px;letter-spacing:5px;font-weight:800;color:var(--pulse)}
+#onbIn h1{font-size:25px;line-height:1.2;margin:10px 0 8px;letter-spacing:-.5px}
+#onbIn p{font-size:13.5px;color:var(--dim);line-height:1.5;margin:0 0 18px}
+#onbIn input{font-size:16px}
+#obGo{width:100%;padding:16px;border-radius:14px;background:var(--pulse);color:#06231a;font-size:16px;font-weight:800;margin-top:4px}
+#obSkip{width:100%;padding:14px;color:var(--dim);font-size:13px;font-weight:700}
+
 /* pendências */
 #dueBox:empty{display:none}
 .due1{display:flex;align-items:center;gap:11px;padding:12px 13px;border-radius:15px;
@@ -410,6 +422,19 @@ textarea{height:76px;resize:none;font-size:14px}
   <button data-tab="cases"><i>▤</i>Casos</button>
 </nav>
 
+<div id="onb">
+  <div id="onbIn">
+    <div class="obrand">REANIMA</div>
+    <h1>Registro de parada cardiorrespiratória</h1>
+    <p>Antes de começar, cadastre quem assina os relatórios. Fica salvo neste aparelho e é preenchido automaticamente em todos os atendimentos.</p>
+    <input type="text" id="obNome" placeholder="Nome do médico" autocomplete="name">
+    <input type="text" id="obCrm" placeholder="CRM (ex.: SP 123.456)">
+    <input type="text" id="obUni" placeholder="Unidade / hospital (opcional)">
+    <button id="obGo">Começar</button>
+    <button id="obSkip">Preencher depois</button>
+  </div>
+</div>
+
 <div id="sheet"><div id="sheetIn">
   <div id="sheetBar"><div id="sheetTitle"></div><button id="sheetX" onclick="closeSheet()">✕</button></div>
   <div id="sheetBody"></div>
@@ -429,6 +454,21 @@ const blank=()=>({id:'c'+Date.now(),name:'',t0:null,log:[],cpr:null,epi:null,sh:
 let cases={},S=null,cfg={voz:true,bpm:110};
 try{cases=JSON.parse(localStorage.getItem(DB))||{}}catch(e){cases={}}
 try{cfg=Object.assign(cfg,JSON.parse(localStorage.getItem(CFG))||{})}catch(e){}
+function migrate(c){
+  const b=blank();
+  Object.keys(b).forEach(k=>{if(c[k]===undefined||c[k]===null&&Array.isArray(b[k]))c[k]=b[k]});
+  if(!c.pt||typeof c.pt!=='object')c.pt=b.pt;
+  Object.keys(b.pt).forEach(k=>{if(c.pt[k]===undefined)c.pt[k]=''});
+  if(!c.q||typeof c.q!=='object')c.q=({});
+  if(!Array.isArray(c.log))c.log=[];
+  if(!Array.isArray(c.team))c.team=[];
+  if(!Array.isArray(c.due))c.due=[];
+  if(!c.causes||typeof c.causes!=='object')c.causes={};
+  c.epiN=+c.epiN||0;c.shN=+c.shN||0;c.who=+c.who||0;
+  c.handsOff=+c.handsOff||0;c.pauses=+c.pauses||0;
+  return c;
+}
+Object.keys(cases).forEach(k=>{try{migrate(cases[k])}catch(e){delete cases[k]}});
 let curId=localStorage.getItem(CUR);
 if(!curId||!cases[curId]){const c=blank();cases[c.id]=c;curId=c.id}
 S=cases[curId];
@@ -443,7 +483,7 @@ const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
 /* ---------------- voz ---------------- */
 let vozReady=false;
 function say(txt){
-  if(!cfg.voz||!window.speechSynthesis)return;
+  try{if(!cfg.voz||!window.speechSynthesis)return}catch(e){return}
   try{
     const u=new SpeechSynthesisUtterance(txt);
     u.lang='pt-BR';u.rate=1.05;u.pitch=1;u.volume=1;
@@ -470,6 +510,7 @@ function renderLog(){
     return `<div class="row k-${e.kind}"><div class="t mono">${hms(e.t-S.t0)}</div><div class="m">${esc(e.msg)}</div><button class="x" data-del="${idx}">×</button></div>`;
   }).join('');
 }
+const ritmoTxt=r=>{const x=low(r||'');return /^ritmo/.test(x)?x:'ritmo de '+x};
 const low=s=>String(s).split(' ').map(w=>
   /^[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõçü]/.test(w)?w.charAt(0).toLowerCase()+w.slice(1):w).join(' ');
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
@@ -524,7 +565,7 @@ function resume(){
   const dur=now()-S.paused;
   S.handsOff=(S.handsOff||0)+dur;S.pauses=(S.pauses||0)+1;
   S.paused=null;S.cpr=now();
-  const before=teamName();rotate();const nm=teamName();
+  rotate();const nm=teamName();
   add('Compressões retomadas após '+(dur/1000).toFixed(1)+' s'+(nm?' — compressor: '+nm:''),'cpr');
   if(dur>10000)add('⚠ Pausa de '+(dur/1000).toFixed(1)+' s — acima da meta de 10 s');
   say(nm?nm+', comprimindo.':'Comprimindo.');
@@ -1021,7 +1062,6 @@ const AWSVG=`<svg id="awSvg" viewBox="0 0 132 92">
   <path class="tube" d="M16 46 C30 44 44 48 54 55 C60 59 62 66 62 74"/>
   <circle class="cuff" cx="62" cy="72" r="5"/>
   <path class="lung" d="M84 58c8 0 14 8 14 18s-6 14-14 14-10-6-10-16 2-16 10-16z"/></svg>`;
-const AWSHORT={bmv:'BVM',mla:'MLA',iot:'TOT'};
 function awPanel(){
   const k=S.airway||'bmv',v=S.etco2;
   return `<div class="awPanel ${k}" id="awBox">${AWSVG}
@@ -1195,8 +1235,14 @@ $('#sheetBody').addEventListener('click',e=>{
   if(d.go==='cases'){tab('cases');closeSheet();return}
   if(d.go){tab(d.go);closeSheet();return}
   if(d.open){switchCase(d.open);closeSheet();return}
-  if(d.del){delete cases[d.del];localStorage.setItem(DB,JSON.stringify(cases));
-    if(!cases[curId]){const c=blank();cases[c.id]=c;curId=c.id;S=c;save();bootCase()}
+  if(d.killok){const id=d.killok;delete cases[id];
+    try{localStorage.setItem(DB,JSON.stringify(cases))}catch(e){}
+    if(id===curId||!cases[curId]){
+      const rest=Object.keys(cases);
+      if(rest.length){curId=rest[0];S=cases[curId]}
+      else{const c=blank();cases[c.id]=c;curId=c.id;S=c}
+      save();bootCase();
+    }
     renderCases();closeSheet();return}
   if(d.copy){navigator.clipboard.writeText(report()).then(()=>b.textContent='Copiado ✓')}
   if(d.qopen){qSheet();return}
@@ -1211,7 +1257,9 @@ function report(){
   const dd=t=>new Date(t).toLocaleDateString('pt-BR');
   const rce=S.log.find(e=>e.kind==='rosc');
   const fim=S.death?S.death.t:(rce?rce.t:(S.log.length?S.log[S.log.length-1].t:now()));
-  const min=Math.max(1,Math.round((fim-t0)/60000));
+  const bad=fim<t0;
+  const min=Math.max(1,Math.round(Math.abs(fim-t0)/60000));
+  const MIN=min+(min===1?' minuto':' minutos');
   const L=[],w=s=>L.push(s),br=()=>L.push('');
   const P=[];
 
@@ -1250,7 +1298,7 @@ function report(){
     :S.q.vent==='já intubado na chegada'?'ventilação por tubo orotraqueal previamente instalado'
     :'ventilação sob bolsa-válvula-máscara com oxigênio suplementar';
   let p2='À avaliação inicial, o paciente encontrava-se '+ach+'. Iniciadas manobras de reanimação cardiopulmonar às '+hh(t0)+', com compressões torácicas e '+vent+', mantidas de forma contínua durante todo o atendimento, com revezamento da equipe ao final de cada ciclo de dois minutos e reavaliação do ritmo entre os ciclos.';
-  if(S.rhythm0)p2+=' A monitorização inicial evidenciou ritmo de '+low(S.rhythm0)+'.';
+  if(S.rhythm0)p2+=' A monitorização inicial evidenciou '+ritmoTxt(S.rhythm0)+'.';
   P.push(p2);
 
   /* 3 — via aérea e acessos */
@@ -1312,8 +1360,8 @@ function report(){
   let p6='';
   if(S.death){
     p6+='A despeito de todas as medidas instituídas, não houve retorno da circulação espontânea';
-    if(S.rhythm)p6+=', permanecendo o paciente em '+low(S.rhythm);
-    p6+='. Após '+min+' minutos de reanimação cardiopulmonar sem resposta às manobras, esgotadas as medidas do protocolo e afastadas as causas reversíveis passíveis de tratamento, optou-se por interromper as manobras, decisão comunicada à equipe presente. ';
+    if(S.rhythm)p6+=', permanecendo o paciente em '+low(S.rhythm).replace(/^ritmo organizado.*/,'ritmo organizado');
+    p6+='. Após '+MIN+' de reanimação cardiopulmonar sem resposta às manobras, esgotadas as medidas do protocolo e afastadas as causas reversíveis passíveis de tratamento, optou-se por interromper as manobras, decisão comunicada à equipe presente. ';
     p6+='Constatado o óbito às '+hh(S.death.t)+' do dia '+dd(S.death.t)+'.';
     if(S.death.ex.length)p6+=' O diagnóstico de morte foi confirmado por '+S.death.ex.map(low).join('; ')+'.';
     if(S.death.nota)p6+=' '+S.death.nota;
@@ -1328,9 +1376,13 @@ function report(){
     else if(S.q.corpo==='encaminhado ao IML')
       p6+=' Não emitido atestado de óbito nesta unidade: corpo encaminhado ao Instituto Médico Legal (IML), por se tratar de morte suspeita, violenta ou de causa externa, com comunicação à autoridade policial.';
   }else if(rce){
-    p6+='Obtido retorno da circulação espontânea às '+hh(rce.t)+', após '+min+' minutos de reanimação';
-    if(S.rhythm)p6+=', com ritmo de '+low(S.rhythm);
-    p6+='.'+(S.q.fam==='presentes durante o atendimento'?' Familiares presentes, informados da evolução.':'')+' Instituídos cuidados pós-parada, com manutenção da via aérea e monitorização contínua, alvo de saturação entre 92 e 98%, normocapnia, suporte hemodinâmico visando pressão arterial média acima de 65 mmHg, eletrocardiograma de 12 derivações e controle direcionado de temperatura. Paciente encaminhado à unidade de terapia intensiva em vaga previamente acionada.';
+    p6+='Obtido retorno da circulação espontânea às '+hh(rce.t)+', após '+MIN+' de reanimação';
+    if(S.rhythm)p6+=', com '+ritmoTxt(S.rhythm);
+    p6+='.'+(S.q.fam==='presentes durante o atendimento'?' Familiares presentes, informados da evolução.':'')+' Instituídos cuidados pós-parada, com manutenção da via aérea e monitorização contínua, alvo de saturação entre 92 e 98%, normocapnia, suporte hemodinâmico visando pressão arterial média acima de 65 mmHg, eletrocardiograma de 12 derivações e controle direcionado de temperatura.';
+    p6+= S.q.dest==='serviço de hemodinâmica'?' Paciente encaminhado ao serviço de hemodinâmica.'
+       : S.q.dest==='transferência para outro serviço'?' Paciente transferido para outro serviço após estabilização inicial.'
+       : S.q.dest==='permanece na sala de emergência'?' Paciente mantido na sala de emergência sob monitorização contínua, aguardando vaga.'
+       : ' Paciente encaminhado à unidade de terapia intensiva em vaga previamente acionada.';
   }else p6+='Atendimento em curso no momento da emissão deste documento.';
   if(S.q.obs)p6+=' '+S.q.obs;
   P.push(p6);
@@ -1344,6 +1396,7 @@ function report(){
     +(S.pt.idade?'   Idade: '+S.pt.idade+' anos':'')
     +(S.pt.sexo?'   Sexo: '+S.pt.sexo:''));
   w('Data: '+dd(t0)+'   Início do atendimento: '+hh(t0)+'   Término: '+hh(fim)+'   Duração: '+min+' min');
+  if(bad)w('** Atenção: o horário de término informado é anterior ao início do atendimento — conferir antes de anexar ao prontuário. **');
   if(S.death&&S.q.corpo)w('Destino do corpo: '+(S.q.corpo==='atestado de óbito emitido na unidade'
     ?'atestado de óbito emitido nesta unidade'+(S.q.donum?' — DO nº '+S.q.donum:'')
     :S.q.corpo==='encaminhado ao SVO'?'encaminhado ao Serviço de Verificação de Óbito (SVO)'
@@ -1557,6 +1610,7 @@ function renderEnd(){
   const rce=S.log.find(e=>e.kind==='rosc');
   const fim=S.death?S.death.t:(rce?rce.t:now());
   const falta=[];
+  if(S.death&&S.t0&&S.death.t<S.t0)falta.push('horário do óbito (informado antes do início do atendimento)');
   if(!S.name)falta.push('identificação do paciente');
   if(!S.pt.origem)falta.push('contexto da parada');
   if(S.death&&!S.death.ex.length)falta.push('critérios de confirmação do óbito');
@@ -1628,7 +1682,7 @@ function waText(){
   L.push(ctx+'.');
   if(S.pt.hd)L.push('Antecedentes: '+S.pt.hd);
   L.push('');
-  L.push('RCP iniciada às '+hh(t0)+', ritmo inicial '+low(S.rhythm0||'não registrado')+'.');
+  L.push('RCP iniciada às '+hh(t0)+', ritmo inicial: '+low(S.rhythm0||'não registrado')+'.');
   if(sh.length)L.push('Desfibrilações: '+sh.length+' — '+sh.map(e=>hh(e.t)).join(', ')+'.');
   Object.keys(g).forEach(k=>L.push(k+': '+g[k].length+' dose(s) — '+g[k].map(hh).join(', ')+'.'));
   if(S.airway==='iot')L.push('IOT'+(S.tube?' '+S.tube:'')+(S.etco2!=null?', EtCO₂ '+S.etco2:'')+'.');
@@ -1637,7 +1691,7 @@ function waText(){
   if(ca.length)L.push('Causas investigadas: '+ca.map(([k,v])=>low(k)+(v==='off'?' (afastada)':'')).join(', ')+'.');
   L.push('');
   if(S.death){
-    L.push('*Óbito constatado às '+hh(S.death.t)+'*, após '+min+' min de reanimação sem retorno da circulação espontânea.');
+    L.push('*Óbito constatado às '+hh(S.death.t)+'*, após '+min+' min de reanimação, sem retorno da circulação espontânea.');
     if(S.death.ex.length)L.push('Confirmado por: '+S.death.ex.join('; ')+'.');
     if(S.q.corpo)L.push('Destino: '+(S.q.corpo==='atestado de óbito emitido na unidade'
       ?'atestado de óbito emitido na unidade'+(S.q.donum?' (DO nº '+S.q.donum+')':'')
@@ -1649,8 +1703,12 @@ function waText(){
 }
 async function sendWA(){
   const txt=waText();
-  if(navigator.share){try{await navigator.share({text:txt});return}catch(e){if(e.name==='AbortError')return}}
-  window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+  try{
+    if(navigator.share){try{await navigator.share({text:txt});return}catch(e){if(e.name==='AbortError')return}}
+    window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+  }catch(e){
+    try{await navigator.clipboard.writeText(txt);alert('Não foi possível abrir o WhatsApp. O texto foi copiado.')}catch(e2){}
+  }
 }
 function dlTxt(){const bl=new Blob([report()],{type:'text/plain'}),a=document.createElement('a');
   a.href=URL.createObjectURL(bl);a.download='pcr_'+new Date(S.t0||now()).toISOString().slice(0,16).replace(/[:T-]/g,'')+'.txt';a.click()}
@@ -1664,19 +1722,32 @@ function renderCases(){
   const list=Object.values(cases).sort((a,b)=>(b.t0||b.id.slice(1))-(a.t0||a.id.slice(1)));
   $('#caseList').innerHTML=list.map(c=>{
     const d=c.t0?new Date(c.t0):null;
-    const st=c.ended?'encerrado':c.log&&c.log.some(e=>e.kind==='rosc')?'RCE':c.t0?'em andamento':'vazio';
+    const st=c.death?'óbito':c.ended?'encerrado':(c.log||[]).some(e=>e.kind==='rosc')?'RCE':c.t0?'em andamento':'não iniciado';
     return `<div class="caseRow ${c.id===S.id?'cur':''}"><div class="i">
       <b>${esc(c.name||(d?d.toLocaleDateString('pt-BR'):'Sem registro'))}</b>
       <small>${d?d.toLocaleString('pt-BR').slice(0,17):'não iniciado'} · ${st} · ${c.shN||0} choque(s) · ${c.epiN||0} adrenalina</small></div>
       ${c.id===S.id?'<button disabled style="opacity:.4">atual</button>':`<button data-open="${c.id}">Abrir</button>`}
-      <button class="danger" data-del="${c.id}">Apagar</button></div>`;
+      <button class="danger" data-kill="${c.id}">Apagar</button></div>`;
   }).join('');
 }
+$('#caseList').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-open],button[data-kill]');if(!b)return;
+  if(b.dataset.open){switchCase(b.dataset.open);return}
+  const id=b.dataset.kill,c=cases[id];if(!c)return;
+  sheet('Apagar atendimento',
+   `<p class="note">${esc(c.name||'Atendimento sem identificação')}${c.t0?' — '+new Date(c.t0).toLocaleString('pt-BR').slice(0,17):''}.
+     Esta ação apaga o registro definitivamente. Exporte antes, se ainda precisar.</p>
+    <button class="opt danger center" data-killok="${id}">Apagar definitivamente</button>`);
+});
 $('#newCase').onclick=()=>{
   const c=blank();cases[c.id]=c;curId=c.id;S=c;save();bootCase();tab('code');
   say('Novo atendimento pronto.');
 };
-function switchCase(id){if(!cases[id])return;curId=id;S=cases[id];save();bootCase();tab('code')}
+function switchCase(id){
+  if(!cases[id])return;
+  curId=id;S=migrate(cases[id]);save();bootCase();
+  tab(S.ended||S.death?'end':'code');
+}
 
 /* ---------------- abas ---------------- */
 function tab(k){
@@ -1702,6 +1773,24 @@ function bootCase(){
   if(S.ended||S.death){renderEnd();tab('end')}
   if(S.t0&&!S.ended)wake();
 }
+/* boas-vindas */
+function onbFinish(skip){
+  if(!skip){
+    cfg.medico=$('#obNome').value.trim();
+    cfg.crm=$('#obCrm').value.trim();
+    cfg.unidade=$('#obUni').value.trim();
+  }
+  cfg.onb=1;save();
+  $('#onb').classList.remove('on');
+  unlockAudio();
+}
+$('#obGo').onclick=()=>onbFinish(false);
+$('#obSkip').onclick=()=>onbFinish(true);
+if(!cfg.onb&&!cfg.medico){
+  $('#onb').classList.add('on');
+  $('#obNome').value=cfg.medico||'';$('#obCrm').value=cfg.crm||'';$('#obUni').value=cfg.unidade||'';
+}
+
 function paintTema(){document.body.dataset.tema=cfg.tema||'dark'}
 paintTema();
 $('#bpm').innerHTML=cfg.bpm+' <small>BPM</small>';
